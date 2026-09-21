@@ -1,5 +1,0 @@
-streamlit
-openai-whisper
-transformers
-TTS
-moviepy
