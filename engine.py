@@ -1,10 +1,31 @@
-# Core Translation Brain - NLLB 200 Languages
-from transformers import pipeline
+from deep_translator import GoogleTranslator
+
+LANGUAGE_MAP = {
+    "English": "en",
+    "Hindi": "hi",
+    "Spanish": "es"
+}
 
 def world_translate(text, target_lang):
-    translator = pipeline("translation", model="facebook/nllb-200-distilled-600M")
-    return translator(text, src_lang="tel_Telu", tgt_lang=target_lang)[0]['translation_text']
+    try:
+        target = LANGUAGE_MAP.get(target_lang, "en")
+
+        translated = GoogleTranslator(
+            source="auto",
+            target=target
+        ).translate(text)
+
+        return translated
+
+    except Exception as e:
+        print(f"Translation Error: {e}")
+        return text
+
 
 def clone_voice(text, lang):
-    # XTTS-v2 Voice Cloning Logic
-    return f"Audio_{lang}.wav"
+    """
+    Placeholder function.
+    Actual audio generation happens in app.py using edge-tts.
+    """
+
+    return text
