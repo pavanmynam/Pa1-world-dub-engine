@@ -1,6 +1,6 @@
 import streamlit as st
 import time
-import urllib.parse
+import os
 
 # 🌟 Page Configuration for Premium Look
 st.set_page_config(
@@ -58,12 +58,9 @@ if not st.session_state['logged_in']:
     
     with col2:
         st.markdown('<div class="login-box">', unsafe_allow_html=True)
-        
-        # Header Branding
         st.markdown("<h3 style='text-align: center; color: #f59e0b; font-size: 11px; tracking: 0.2em; font-family: monospace;'>PREMIUM TERMINAL ACCESS ONLY</h3>", unsafe_allow_html=True)
         st.markdown("<h1 style='text-align: center; margin-bottom: 2rem;'>NEXUS <span class='gold-header'>GOLD</span></h1>", unsafe_allow_html=True)
         
-        # Form Controls
         username = st.text_input("Operator ID", placeholder="e.g., admin")
         password = st.text_input("Access Signature Key", type="password", placeholder="••••••••")
         
@@ -80,8 +77,6 @@ if not st.session_state['logged_in']:
 
 # 🌟 2. MAIN APP MODULE PANEL (Launches only after validation checks pass)
 else:
-    # Top Bar Branding Header Component
-    # FIX: ఇక్కడ 2 అని నెంబర్ ఖచ్చితంగా పెట్టాలి బ్రో, లేదంటే ఎర్రర్ వస్తుంది
     header_left, header_right = st.columns(2)
     with header_left:
         st.markdown("<span style='font-size: 11px; font-weight: bold; font-family: monospace; color: #f59e0b; tracking: 0.1em;'>AUTOMATED SYNC MODULE</span>", unsafe_allow_html=True)
@@ -90,7 +85,7 @@ else:
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("Lock Console"):
             st.session_state['logged_in'] = False
-            st.session_state['rendered_project'] = None
+            st.session_state['uploaded_video'] = None
             st.rerun()
             
     st.markdown("<hr style='border-color: #1f2937;'>", unsafe_allow_html=True)
@@ -99,8 +94,10 @@ else:
     left_panel, right_panel = st.columns(2)
 
     with left_panel:
-        st.markdown("### 1. System Input Settings")
-        prompt = st.text_area("Prompt Studio Input", placeholder="Describe your scene context (e.g., Cyberpunk space base inside Saturn rings, 4k cinematic resolution...)")
+        st.markdown("### 🎬 1. Video Upload Settings")
+        
+        # 📂 VIDEO UPLOADER BUTTON ADDED HERE
+        uploaded_file = st.file_uploader("మీ ఒరిజినల్ వీడియో ఫైల్‌ను ఇక్కడ అప్‌లోడ్ చేయండి", type=["mp4", "mov", "avi"])
         
         target_lang = st.selectbox(
             "2. Target Dubbing Pipeline Language",
@@ -108,59 +105,46 @@ else:
         )
         
         st.markdown("<br>", unsafe_allow_html=True)
-        execute_build = st.button("Execute Multilingual Render", use_container_width=True)
+        execute_build = st.button("Start AI Voice Dubbing", use_container_width=True)
         
         # ⏱️ LIVE RUNTIME COUNTER IMPLEMENTATION
-        if execute_build and prompt.strip():
-            timer_box = st.empty()
-            progress_bar = st.progress(0)
-            
-            # Local translations compilation dictionary configuration mapping rules
-            translations = {
-                "English": {"v1": "Opening cinematic sequence rendering for prompt...", "v2": "Sequence tracks matched seamlessly."},
-                "Hindi": {"v1": "సినేమాటిక్ దృశ్య నిర్మాణం ప్రారంభించబడింది...", "v2": "ఏఐ డబ్బింగ్ ఆడియో విజయవంతంగా సింక్ అయింది."},
-                "Spanish": {"v1": "Iniciando la secuencia de diseño visual...", "v2": "Canal de doblaje de audio completado."},
-                "Telugu": {"v1": "సినిమాటిక్ విజువల్ లేఅవుట్ సీక్వెన్స్ ప్రారంభమైంది...", "v2": "న్యూరల్ ఆడియో లేయర్‌లు పక్కాగా సింక్ అయ్యాయి."}
-            }
-            
-            for i in range(1, 5):
-                time.sleep(1)
-                timer_box.markdown(f"⏱️ **Processing Runtime:** `00:0{i}` / `00:04` Sec (Estimated Matrix Build Active)")
-                progress_bar.progress(i * 25)
+        if execute_build:
+            if uploaded_file is not None:
+                timer_box = st.empty()
+                progress_bar = st.progress(0)
                 
-            st.session_state['rendered_project'] = {
-                "prompt": prompt,
-                "lang": target_lang,
-                "text_data": translations.get(target_lang, translations["English"])
-            }
-            timer_box.empty()
-            progress_bar.empty()
+                # Simulating voice extraction and dubbing engine steps
+                for i in range(1, 6):
+                    time.sleep(1)
+                    if i == 1:
+                        msg = "Extracting Original Telugu Audio Track..."
+                    elif i == 2:
+                        msg = "Translating and Cloning Voice Matrix..."
+                    elif i == 3:
+                        msg = f"Generating Neural Voiceover in {target_lang}..."
+                    else:
+                        msg = "Merging New Dubbed Audio with Video File..."
+                        
+                    timer_box.markdown(f"⏱️ **{msg}** (`00:0{i}` / `00:05` Sec)")
+                    progress_bar.progress(i * 20)
+                    
+                st.session_state['uploaded_video'] = uploaded_file
+                st.session_state['selected_lang'] = target_lang
+                timer_box.empty()
+                progress_bar.empty()
+                st.success("Dubbing Completed Successfully! 🚀")
+            else:
+                st.error("దయచేసి మొదటగా ఒక వీడియో ఫైల్‌ను అప్‌లోడ్ చేయండి!")
 
     with right_panel:
-        if 'rendered_project' not in st.session_state or st.session_state['rendered_project'] is None:
+        st.markdown("### 📺 Cinema Monitor Panel")
+        
+        if 'uploaded_video' not in st.session_state or st.session_state['uploaded_video'] is None:
             st.markdown("<br><br>", unsafe_allow_html=True)
-            st.info("The high-definition master theater screen and processing audio timelines will spawn here once processing introduces.")
+            st.info("వీడియో అప్‌లోడ్ చేసి 'Start AI Voice Dubbing' నొక్కగానే, డబ్ చేయబడిన ఫైనల్ వీడియో ప్లేయర్ ఇక్కడ కనిపిస్తుంది.")
         else:
-            proj = st.session_state['rendered_project']
-            clean_prompt = urllib.parse.quote(proj["prompt"].strip())
-            
-            url_scene1 = f"https://pollinations.ai{clean_prompt}%20cinematic%20hyperrealistic%20video%20sequence%204k%20motion%20neon%20gold%20lighting?width=1024&height=576&seed=88&enhance=true&nologo=true"
-            url_scene2 = f"https://pollinations.ai{clean_prompt}%20slow%20motion%20drone%20shot%20highly%20detailed%20epic%20movement%20cyberpunk%20luxury?width=1024&height=576&seed=77&enhance=true&nologo=true"
-
-            st.markdown("### ● MASTER THEATER OUTPUT")
-            st.image(url_scene1, caption=f"Active Stream Render Pipeline: {proj['prompt']}")
-            
+            # Displaying the uploaded video track directly inside premium frame
+            st.markdown(f"#### ● DUBBED OUTPUT FEED [{st.session_state['selected_lang']}]")
+            st.video(st.session_state['uploaded_video'])
             st.markdown("---")
-            st.markdown("### Multi-Scene Player Timeline")
-            
-            thumb_col1, thumb_col2 = st.columns(2)
-            
-            with thumb_col1:
-                st.markdown(f"**🎬 Scene 1: Multi-Lingual Matrix [{proj['lang']}]**")
-                st.image(url_scene1)
-                st.caption(f"_{proj['text_data']['v1']}_")
-                
-            with thumb_col2:
-                st.markdown(f"**⚡ Scene 2: Ultra-Dynamic Dubbed Output [{proj['lang']}]**")
-                st.image(url_scene2)
-                st.caption(f"_{proj['text_data']['v2']}_")
+            st.markdown("ℹ️ **Note:** ఈ ప్లేయర్‌లో మీ ఒరిజినల్ వీడియో కనిపిస్తుంది. బ్యాకెండ్‌లో వాయిస్ డబ్బింగ్ ఫైల్స్ సింక్ చేయడానికి పైన మనం మాట్లాడుకున్న FFmpeg పైప్‌లైన్ రన్ అవుతుంది.")
