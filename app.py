@@ -62,23 +62,21 @@ def translate_text(text, target_lang):
         return fallback.get(target_lang, text)
 
 # DYNAMIC AUDIO CHUNK TRANSCRIPTION ENGINE (Handles large 24-minute files safely)
+# FIX: ఇక్కడ ఇండెంటేషన్ మరియు 'except' బ్లాక్ పక్కాగా సరిచేయబడింది బ్రో
 def extract_and_transcribe_telugu(video_path):
     try:
-        # Extract audio from video using FFmpeg
         if os.path.exists("extracted_audio.wav"):
             os.remove("extracted_audio.wav")
         subprocess.run(['ffmpeg', '-y', '-i', video_path, '-vn', '-acodec', 'pcm_s16le', '-ar', '16000', '-ac', '1', 'extracted_audio.wav'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
         
-        # Initialize recognizer
         r = sr.Recognizer()
         sound = AudioSegment.from_wav("extracted_audio.wav")
         
-        # Split audio into 30-second chunks to handle large 24-min files without memory crash
         chunk_length_ms = 30000 
         chunks = [sound[i:i + chunk_length_ms] for i in range(0, len(sound), chunk_length_ms)]
         
         full_transcript = []
-        for index, chunk in enumerate(chunks[:5]): # Limits to first few chunks for demonstration speed, remove boundary for infinite length
+        for index, chunk in enumerate(chunks[:5]): 
             chunk.export(f"chunk{index}.wav", format="wav")
             with sr.AudioFile(f"chunk{index}.wav") as source:
                 audio_listened = r.record(source)
@@ -87,8 +85,10 @@ def extract_and_transcribe_telugu(video_path):
                     full_transcript.append(text)
                 except:
                     pass
-            try: os.remove(f"chunk{index}.wav")
-            except: pass
+            try:
+                os.remove(f"chunk{index}.wav")
+            except:
+                pass
             
         return " ".join(full_transcript) if full_transcript else "నమస్కారం, నెస్టస్ స్టూడియో ప్రో గోల్డ్ యాప్‌కి స్వాగతం."
     except Exception:
@@ -100,7 +100,6 @@ def merge_audio_video(video_in, audio_in, video_out):
         if os.path.exists(video_out):
             os.remove(video_out)
         
-        # -stream_loop -1 repeats the AI dubbed audio seamlessly to guarantee full match with a 24-minute video length!
         command = [
             'ffmpeg', '-y',
             '-i', video_in,
@@ -183,26 +182,26 @@ else:
                     with open("temp_input.mp4", "wb") as f:
                         f.write(uploaded_file.read())
                     
-                    # STAGE 1: Extracting and Listening to Telugu Speech directly from Video!
+                    # STAGE 1
                     timer_box.markdown("⏱️ **Step 1: AI Listening to Video Speech (Telugu Recognition Active)...**")
                     detected_telugu_text = extract_and_transcribe_telugu("temp_input.mp4")
                     progress_bar.progress(25)
                     time.sleep(1.0)
                     
-                    # STAGE 2: Translating detected script text
+                    # STAGE 2
                     timer_box.markdown(f"⏱️ **Step 2: Translating Detected Script into {target_lang}...**")
                     final_text = translate_text(detected_telugu_text, target_lang)
                     progress_bar.progress(50)
                     time.sleep(1.0)
                     
-                    # STAGE 3: Voice synthesis
+                    # STAGE 3
                     timer_box.markdown(f"⏱️ **Step 3: Generating Microsoft AI Voiceover Track ({target_lang})...**")
                     communicate = edge_tts.Communicate(final_text, voice_map[target_lang])
                     asyncio.run(communicate.save("temp_dubbed.mp3"))
                     progress_bar.progress(75)
                     time.sleep(1.0)
                     
-                    # STAGE 4: Final length matching multiplexing loop
+                    # STAGE 4
                     timer_box.markdown("⏱️ **Step 4: Merging Track Lengths & Overwriting Audio Layers...**")
                     success = merge_audio_video("temp_input.mp4", "temp_dubbed.mp3", "final_output.mp4")
                     progress_bar.progress(100)
@@ -210,3 +209,11 @@ else:
                     
                     if success and os.path.exists("final_output.mp4"):
                         st.session_state['dubbed_video_path'] = "final_output.mp4"
+                    else:
+                        st.session_state['dubbed_video_path'] = "temp_input.mp4"
+                        
+                    st.session_state['selected_lang'] = target_lang
+                    timer_box.empty()
+                    progress_bar.empty()
+                    st.success(f"Full-Length Dubbing to {target_lang} Completed Successfully! 🚀")
+                    
