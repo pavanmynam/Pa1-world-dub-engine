@@ -75,7 +75,7 @@ def extract_and_transcribe_telugu(video_path):
         chunks = [sound[i:i + chunk_length_ms] for i in range(0, len(sound), chunk_length_ms)]
         
         full_transcript = []
-        for index, chunk in enumerate(chunks[:5]): 
+        for index, chunk in enumerate(chunks): 
             chunk_filename = f"chunk_{index}.wav"
             chunk.export(chunk_filename, format="wav")
             with sr.AudioFile(chunk_filename) as source:
@@ -92,7 +92,7 @@ def extract_and_transcribe_telugu(video_path):
             
         return " ".join(full_transcript) if full_transcript else "నమస్కారం, నెక్సస్ స్టూడియో ప్రో గోల్డ్ యాప్‌కి స్వాగతం."
     except Exception:
-        return "నమస్కారం, నెక్సస్ స్టూడియో ప్రో గోల్డ్ యాప్‌కి స్వాగతం."
+       
 
 # PREMIUM FFMPEG MULTIPLEXER (Matches full long lengths automatically)
 def merge_audio_video(video_in, audio_in, video_out):
