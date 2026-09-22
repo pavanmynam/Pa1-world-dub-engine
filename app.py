@@ -40,7 +40,7 @@ st.markdown("""
 if 'logged_in' not in st.session_state:
     st.session_state['logged_in'] = False
 
-# FREE TRANSLATION ENGINE VIA MYMEMORY API (No 'cgi' dependency, 100% Safe)
+# FREE TRANSLATION ENGINE VIA MYMEMORY API (100% Safe & Stable)
 def translate_text(text, target_lang):
     try:
         lang_map = {"English": "en", "Hindi": "hi", "Spanish": "es"}
@@ -100,7 +100,7 @@ else:
         st.markdown("### 🎬 1. Video Dubbing Settings")
         uploaded_file = st.file_uploader("మీ ఒరిజినల్ వీడియో ఫైల్‌ను ఇక్కడ అప్‌లోడ్ చేయండి", type=["mp4", "mov", "avi"])
         
-        text_to_dub = st.text_area("వీడియోలోని మాటలను ఇక్కడ టైప్ చేయండి (డబ్బింగ్ స్క్రిప్ట్)", value="నమస్కారం, నెస్టస్ స్టూడియో ప్రో గోల్డ్ యాప్‌కి స్వాగతం.")
+        text_to_dub = st.text_area("వీడియోలోని మాటలను ఇక్కడ టైప్ చేయండి (డబ్బింగ్ స్క్రిప్ట్)", value="నమస్కారం, నెక్సస్ స్టూడియో ప్రో గోల్డ్ యాప్‌కి స్వాగతం.")
         
         target_lang = st.selectbox(
             "2. Target Dubbing Pipeline Language",
@@ -125,25 +125,25 @@ else:
                     with open("temp_input.mp4", "wb") as f:
                         f.write(uploaded_file.read())
                     
-                    # STAGE 1: Status tracking
+                    # STAGE 1
                     timer_box.markdown("⏱️ **Step 1: Processing Uploaded Video Assets...**")
                     progress_bar.progress(25)
                     time.sleep(1.5)
                     
-                    # STAGE 2: Free Robust Translation
+                    # STAGE 2
                     timer_box.markdown(f"⏱️ **Step 2: Translating Script into {target_lang} Engine...**")
                     final_text = translate_text(text_to_dub, target_lang)
                     progress_bar.progress(50)
                     time.sleep(1.5)
                     
-                    # STAGE 3: Microsoft edge-tts Voice Synthesis Engine
+                    # STAGE 3
                     timer_box.markdown(f"⏱️ **Step 3: Generating Microsoft AI Voiceover ({target_lang})...**")
                     communicate = edge_tts.Communicate(final_text, voice_map[target_lang])
                     asyncio.run(communicate.save("temp_dubbed.mp3"))
                     progress_bar.progress(75)
                     time.sleep(1.5)
                     
-                    # STAGE 4: Finalizing Build Layout
+                    # STAGE 4
                     timer_box.markdown("⏱️ **Step 4: Compiling New Audio Layer Outputs...**")
                     progress_bar.progress(100)
                     time.sleep(1)
