@@ -53,7 +53,7 @@ def translate_text(text, target_lang):
         with urllib.request.urlopen(req, timeout=5) as response:
             data = json.loads(response.read().decode())
             return data["responseData"]["translatedText"]
-    except Exception:
+    
         fallback = {
             "English": "This is a fully automated high-quality AI dubbed sequence matching the full project.",
             "Hindi": "यह पूरी तरह से स्वचालित उच्च गुणवत्ता वाली एआई डब की गई सामग्री है।",
@@ -83,15 +83,15 @@ def extract_and_transcribe_telugu(video_path):
                 try:
                     text = r.recognize_google(audio_listened, language="te-IN")
                     full_transcript.append(text)
-                except Exception:
+                except Exception:     return "" ``
                     pass
             try:
                 os.remove(chunk_filename)
-            except Exception:
+            except Exception:     return "" ``
                 pass
             
         return " ".join(full_transcript) if full_transcript else "నమస్కారం, నెక్సస్ స్టూడియో ప్రో గోల్డ్ యాప్‌కి స్వాగతం."
-    except Exception:
+    except Exception:     return "" ``
        
 
 # PREMIUM FFMPEG MULTIPLEXER (Matches full long lengths automatically)
