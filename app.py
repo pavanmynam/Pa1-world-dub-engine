@@ -11,6 +11,7 @@ st.set_page_config(
 )
 
 # Custom Luxury Gold & Dark Theme CSS Styling
+# ఇక్కడ unsafe_allow_html=True గా పక్కాగా సరిచేయబడింది బ్రో
 st.markdown("""
     <style>
     .stApp {
@@ -18,7 +19,7 @@ st.markdown("""
         color: #f8fafc;
     }
     div.stButton > button:first-child {
-        background: linear-gradient(90deg, #d97706, #f59e0b, #amb000);
+        background: linear-gradient(90deg, #d97706, #f59e0b, #b45309);
         color: #070708 !important;
         font-weight: bold;
         border: none;
@@ -46,7 +47,7 @@ st.markdown("""
         box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
     }
     </style>
-""", unsafe_style_code=True)
+""", unsafe_allow_html=True)
 
 # Session State Management for Login Configuration
 if 'logged_in' not in st.session_state:
@@ -81,7 +82,7 @@ if not st.session_state['logged_in']:
 # 🌟 2. MAIN APP MODULE PANEL (Launches only after validation checks pass)
 else:
     # Top Bar Branding Header Component
-    header_left, header_right = st.columns([8, 2])
+    header_left, header_right = st.columns()
     with header_left:
         st.markdown("<span style='font-size: 11px; font-weight: bold; font-family: monospace; color: #f59e0b; tracking: 0.1em;'>AUTOMATED SYNC MODULE</span>", unsafe_allow_html=True)
         st.markdown("<h1>NEXUS STUDIO <span style='font-size: 12px; font-family: monospace; padding: 2px 6px; background-color: rgba(245,158,11,0.2); border: 1px solid rgba(245,158,11,0.3); color: #f59e0b; border-radius: 4px;'>PRO GOLD</span></h1>", unsafe_allow_html=True)
@@ -89,12 +90,13 @@ else:
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("Lock Console"):
             st.session_state['logged_in'] = False
+            st.session_state['rendered_project'] = None
             st.rerun()
             
     st.markdown("<hr style='border-color: #1f2937;'>", unsafe_allow_html=True)
 
     # Core Workspace Columns
-    left_panel, right_panel = st.columns([4, 8])
+    left_panel, right_panel = st.columns()
 
     with left_panel:
         st.markdown("### 1. System Input Settings")
@@ -116,7 +118,7 @@ else:
             # Local translations compilation dictionary configuration mapping rules
             translations = {
                 "English": {"v1": "Opening cinematic sequence rendering for prompt...", "v2": "Sequence tracks matched seamlessly."},
-                "Hindi": {"v1": "सिनेमाई दृश्य संरचना आरंभ की जा रही है...", "v2": "एआई डबिंग ऑडियो सफलतापूर्वक सिंक हो गया है।"},
+                "Hindi": {"v1": "సినేమాటిక్ దృశ్య నిర్మాణం ప్రారంభించబడింది...", "v2": "ఏఐ డబ్బింగ్ ఆディオ విజయవంతంగా సింక్ అయింది."},
                 "Spanish": {"v1": "Iniciando la secuencia de diseño visual...", "v2": "Canal de doblaje de audio completado."},
                 "Telugu": {"v1": "సినిమాటిక్ విజువల్ లేఅవుట్ సీక్వెన్స్ ప్రారంభమైంది...", "v2": "న్యూరల్ ఆడియో లేయర్‌లు పక్కాగా సింక్ అయ్యాయి."}
             }
@@ -137,7 +139,7 @@ else:
     with right_panel:
         if 'rendered_project' not in st.session_state or st.session_state['rendered_project'] is None:
             st.markdown("<br><br>", unsafe_allow_html=True)
-            st.info("The high-definition master theater screen and processing audio timelines will spawn here once processing initiates.")
+            st.info("The high-definition master theater screen and processing audio timelines will spawn here once processing introduces.")
         else:
             proj = st.session_state['rendered_project']
             clean_prompt = urllib.parse.quote(proj["prompt"].strip())
@@ -146,19 +148,19 @@ else:
             url_scene2 = f"https://pollinations.ai{clean_prompt}%20slow%20motion%20drone%20shot%20highly%20detailed%20epic%20movement%20cyberpunk%20luxury?width=1024&height=576&seed=77&enhance=true&nologo=true"
 
             st.markdown("### ● MASTER THEATER OUTPUT")
-            st.image(url_scene1, use_container_width=True, caption=f"Active Stream Render Pipeline: {proj['prompt']}")
+            st.image(url_scene1, caption=f"Active Stream Render Pipeline: {proj['prompt']}")
             
             st.markdown("---")
             st.markdown("### Multi-Scene Player Timeline")
             
-            thumb_col1, col_gap, thumb_col2 = st.columns([4.8, 0.4, 4.8])
+            thumb_col1, thumb_col2 = st.columns(2)
             
             with thumb_col1:
                 st.markdown(f"**🎬 Scene 1: Multi-Lingual Matrix [{proj['lang']}]**")
-                st.image(url_scene1, use_container_width=True)
+                st.image(url_scene1)
                 st.caption(f"_{proj['text_data']['v1']}_")
                 
             with thumb_col2:
                 st.markdown(f"**⚡ Scene 2: Ultra-Dynamic Dubbed Output [{proj['lang']}]**")
-                st.image(url_scene2, use_container_width=True)
+                st.image(url_scene2)
                 st.caption(f"_{proj['text_data']['v2']}_")
