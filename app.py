@@ -11,7 +11,6 @@ st.set_page_config(
 )
 
 # Custom Luxury Gold & Dark Theme CSS Styling
-# ఇక్కడ unsafe_allow_html=True గా పక్కాగా సరిచేయబడింది బ్రో
 st.markdown("""
     <style>
     .stApp {
@@ -82,7 +81,8 @@ if not st.session_state['logged_in']:
 # 🌟 2. MAIN APP MODULE PANEL (Launches only after validation checks pass)
 else:
     # Top Bar Branding Header Component
-    header_left, header_right = st.columns()
+    # FIX: ఇక్కడ 2 అని నెంబర్ ఖచ్చితంగా పెట్టాలి బ్రో, లేదంటే ఎర్రర్ వస్తుంది
+    header_left, header_right = st.columns(2)
     with header_left:
         st.markdown("<span style='font-size: 11px; font-weight: bold; font-family: monospace; color: #f59e0b; tracking: 0.1em;'>AUTOMATED SYNC MODULE</span>", unsafe_allow_html=True)
         st.markdown("<h1>NEXUS STUDIO <span style='font-size: 12px; font-family: monospace; padding: 2px 6px; background-color: rgba(245,158,11,0.2); border: 1px solid rgba(245,158,11,0.3); color: #f59e0b; border-radius: 4px;'>PRO GOLD</span></h1>", unsafe_allow_html=True)
@@ -96,7 +96,7 @@ else:
     st.markdown("<hr style='border-color: #1f2937;'>", unsafe_allow_html=True)
 
     # Core Workspace Columns
-    left_panel, right_panel = st.columns()
+    left_panel, right_panel = st.columns(2)
 
     with left_panel:
         st.markdown("### 1. System Input Settings")
@@ -118,7 +118,7 @@ else:
             # Local translations compilation dictionary configuration mapping rules
             translations = {
                 "English": {"v1": "Opening cinematic sequence rendering for prompt...", "v2": "Sequence tracks matched seamlessly."},
-                "Hindi": {"v1": "సినేమాటిక్ దృశ్య నిర్మాణం ప్రారంభించబడింది...", "v2": "ఏఐ డబ్బింగ్ ఆディオ విజయవంతంగా సింక్ అయింది."},
+                "Hindi": {"v1": "సినేమాటిక్ దృశ్య నిర్మాణం ప్రారంభించబడింది...", "v2": "ఏఐ డబ్బింగ్ ఆడియో విజయవంతంగా సింక్ అయింది."},
                 "Spanish": {"v1": "Iniciando la secuencia de diseño visual...", "v2": "Canal de doblaje de audio completado."},
                 "Telugu": {"v1": "సినిమాటిక్ విజువల్ లేఅవుట్ సీక్వెన్స్ ప్రారంభమైంది...", "v2": "న్యూరల్ ఆడియో లేయర్‌లు పక్కాగా సింక్ అయ్యాయి."}
             }
