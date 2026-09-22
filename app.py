@@ -216,3 +216,25 @@ else:
                     st.session_state['selected_lang'] = target_lang
                     timer_box.empty()
                     progress_bar.empty()
+                    st.success(f"✅ {target_lang} dubbing completed!")
+
+                    if os.path.exists(st.session_state['dubbed_video_path']):
+                        st.video(st.session_state['dubbed_video_path'])
+
+                        with open(st.session_state['dubbed_video_path'], "rb") as file:
+                            st.download_button(
+                                label="⬇ Download Dubbed Video",
+                                data=file,
+                                file_name="dubbed_video.mp4",
+                                mime="video/mp4"
+                            )
+
+                except Exception as e:
+                    st.error(f"❌ Error: {str(e)}")
+
+                finally:
+                    timer_box.empty()
+                    progress_bar.empty()
+
+            else:
+                st.warning("⚠️ Please upload a video file.")
