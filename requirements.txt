@@ -1,4 +1,3 @@
 streamlit
-gtts
-deep-translator
-openai-whisper
+edge-tts
+googletrans==4.0.0-rc1
