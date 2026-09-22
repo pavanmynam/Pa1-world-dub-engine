@@ -2,3 +2,6 @@ streamlit
 edge-tts
 SpeechRecognition
 pydub
+deep-translator
+requests
+ffmpeg-python
