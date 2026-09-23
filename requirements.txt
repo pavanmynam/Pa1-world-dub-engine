@@ -1,0 +1,5 @@
+streamlit
+faster-whisper
+edge-tts
+moviepy==1.0.3
+deep-translator
