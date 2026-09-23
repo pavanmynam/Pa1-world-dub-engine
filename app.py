@@ -1,240 +1,211 @@
-import streamlit as st
-import time
-import os
 import asyncio
-import edge_tts
-import urllib.parse
-import urllib.request
-import json
+import os
+import shutil
 import subprocess
-import speech_recognition as sr
-from pydub import AudioSegment
+import tempfile
+from pathlib import Path
+from typing import Callable, Dict, List, Optional
 
-# 🌟 Page Configuration for Premium Look
-st.set_page_config(
-    page_title="NEXUS STUDIO - AUTO DUB PRO",
-    page_icon="⚡",
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
+import edge_tts
+import streamlit as st
+from faster_whisper import WhisperModel
+from deep_translator import GoogleTranslator
 
-# Custom Luxury Gold Theme CSS
-st.markdown("""
-    <style>
-    .stApp { background-color: #030712; color: #f8fafc; }
-    div.stButton > button:first-child {
-        background: linear-gradient(90deg, #d97706, #f59e0b, #b45309);
-        color: #070708 !important; font-weight: bold; border: none;
-        border-radius: 12px; padding: 0.75rem 2rem;
-        text-transform: uppercase; letter-spacing: 0.1em; transition: all 0.3s ease;
-    }
-    div.stButton > button:first-child:hover { opacity: 0.9; transform: scale(1.02); }
-    .gold-header {
-        background: linear-gradient(90deg, #fbbf24, #f59e0b, #fbbf24);
-        -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 900;
-    }
-    .login-box {
-        background-color: #0d0d0f; border: 1px solid rgba(245, 158, 11, 0.2);
-        padding: 2.5rem; border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
-    }
-    </style>
-""", unsafe_allow_html=True)
 
-if 'logged_in' not in st.session_state:
-    st.session_state['logged_in'] = False
+LANGUAGES: Dict[str, Dict[str, str]] = {
+    "English": {"code": "en", "voice": "en-US-JennyNeural"},
+    "Hindi": {"code": "hi", "voice": "hi-IN-SwaraNeural"},
+    "Telugu": {"code": "te", "voice": "te-IN-ShrutiNeural"},
+    "Tamil": {"code": "ta", "voice": "ta-IN-PallaviNeural"},
+    "Kannada": {"code": "kn", "voice": "kn-IN-SapnaNeural"},
+    "Malayalam": {"code": "ml", "voice": "ml-IN-SobhanaNeural"},
+    "Spanish": {"code": "es", "voice": "es-ES-ElviraNeural"},
+    "French": {"code": "fr", "voice": "fr-FR-DeniseNeural"},
+    "German": {"code": "de", "voice": "de-DE-KatjaNeural"},
+    "Arabic": {"code": "ar", "voice": "ar-SA-ZariyahNeural"},
+    "Japanese": {"code": "ja", "voice": "ja-JP-NanamiNeural"},
+    "Korean": {"code": "ko", "voice": "ko-KR-SunHiNeural"},
+    "Portuguese": {"code": "pt", "voice": "pt-BR-FranciscaNeural"},
+}
 
-# FREE TRANSLATION ENGINE VIA MYMEMORY API
-def translate_text(text, target_lang):
-    try:
-        lang_map = {"English": "en", "Hindi": "hi", "Spanish": "es"}
-        target_code = lang_map.get(target_lang, "en")
-        url = f"https://translated.net{urllib.parse.quote(text)}&langpair=te|{target_code}"
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req, timeout=5) as response:
-            data = json.loads(response.read().decode())
-            return data["responseData"]["translatedText"]
-    
-        fallback = {
-            "English": "This is a fully automated high-quality AI dubbed sequence matching the full project.",
-            "Hindi": "यह पूरी तरह से स्वचालित उच्च गुणवत्ता वाली एआई डब की गई सामग्री है।",
-            "Spanish": "Esta es una secuencia doblada por IA completamente automática."
-        }
-        return fallback.get(target_lang, text)
+SOURCE_LANGUAGES = {
+    "Auto detect": None,
+    "Telugu": "te",
+    "Hindi": "hi",
+    "English": "en",
+    "Tamil": "ta",
+    "Kannada": "kn",
+    "Malayalam": "ml",
+}
 
-# DYNAMIC AUDIO CHUNK TRANSCRIPTION ENGINE (Handles large 24-minute files safely)
-def extract_and_transcribe_telugu(video_path):
-    try:
-        if os.path.exists("extracted_audio.wav"):
-            os.remove("extracted_audio.wav")
-        subprocess.run(['ffmpeg', '-y', '-i', video_path, '-vn', '-acodec', 'pcm_s16le', '-ar', '16000', '-ac', '1', 'extracted_audio.wav'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
-        
-        r = sr.Recognizer()
-        sound = AudioSegment.from_wav("extracted_audio.wav")
-        
-        chunk_length_ms = 30000 
-        chunks = [sound[i:i + chunk_length_ms] for i in range(0, len(sound), chunk_length_ms)]
-        
-        full_transcript = []
-        for index, chunk in enumerate(chunks): 
-            chunk_filename = f"chunk_{index}.wav"
-            chunk.export(chunk_filename, format="wav")
-            with sr.AudioFile(chunk_filename) as source:
-                audio_listened = r.record(source)
-                try:
-                    text = r.recognize_google(audio_listened, language="te-IN")
-                    full_transcript.append(text)
-                except Exception:     return "" ``
-                    pass
-            try:
-                os.remove(chunk_filename)
-            except Exception:     return "" ``
-                pass
-            
-        return " ".join(full_transcript) if full_transcript else "నమస్కారం, నెక్సస్ స్టూడియో ప్రో గోల్డ్ యాప్‌కి స్వాగతం."
-    except Exception:     return "" ``
-       
 
-# PREMIUM FFMPEG MULTIPLEXER (Matches full long lengths automatically)
-def merge_audio_video(video_in, audio_in, video_out):
-    try:
-        if os.path.exists(video_out):
-            os.remove(video_out)
-        
-        # -stream_loop -1 loops the dubbed audio accurately to match any 24+ minute video timeline length!
-        command = [
-            'ffmpeg', '-y',
-            '-i', video_in,
-            '-stream_loop', '-1',
-            '-i', audio_in,
-            '-map', '0:v',      
-            '-map', '1:a',      
-            '-c:v', 'copy',     
-            '-c:a', 'aac',      
-            '-shortest',        
-            video_out
-        ]
-        subprocess.run(command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        return True
-    except Exception:
-        return False
+@st.cache_resource(show_spinner=False)
+def load_whisper_model(model_size: str) -> WhisperModel:
+    # CPU/int8 keeps deployment affordable. Set WHISPER_DEVICE=cuda for a GPU host.
+    device = os.getenv("WHISPER_DEVICE", "cpu")
+    compute_type = os.getenv("WHISPER_COMPUTE_TYPE", "int8" if device == "cpu" else "float16")
+    return WhisperModel(model_size, device=device, compute_type=compute_type)
 
-# 🌟 1. LUXURY GOLD LOOK LOGIN PAGE
-if not st.session_state['logged_in']:
-    col1, col2, col3 = st.columns([1, 1.5, 1])
-    with col2:
-        st.markdown('<div class="login-box">', unsafe_allow_html=True)
-        st.markdown("<h3 style='text-align: center; color: #f59e0b; font-size: 11px; tracking: 0.2em; font-family: monospace;'>PREMIUM TERMINAL ACCESS ONLY</h3>", unsafe_allow_html=True)
-        st.markdown("<h1 style='text-align: center; margin-bottom: 2rem;'>NEXUS <span class='gold-header'>GOLD</span></h1>", unsafe_allow_html=True)
-        
-        username = st.text_input("Operator ID", placeholder="e.g., admin")
-        password = st.text_input("Access Signature Key", type="password", placeholder="••••••••")
-        
-        st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("Authorize System Access", use_container_width=True):
-            if username == "admin" and password == "admin123":
-                st.session_state['logged_in'] = True
-                st.rerun()
-            else:
-                st.error("Invalid Security Signature! (Hint: admin / admin123)")
-        st.markdown("<p style='text-align: center; font-size: 11px; color: #4b5563; font-family: monospace; margin-top: 1.5rem;'>Terminal Defaults: admin / admin123</p>", unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
 
-# 🌟 2. MAIN APP MODULE PANEL
-else:
-    header_left, header_right = st.columns(2)
-    with header_left:
-        st.markdown("<span style='font-size: 11px; font-weight: bold; font-family: monospace; color: #f59e0b; tracking: 0.1em;'>FULL AUTOMATION DUB ENGINE</span>", unsafe_allow_html=True)
-        st.markdown("<h1>NEXUS STUDIO <span style='font-size: 12px; font-family: monospace; padding: 2px 6px; background-color: rgba(245,158,11,0.2); border: 1px solid rgba(245,158,11,0.3); color: #f59e0b; border-radius: 4px;'>PRO GOLD</span></h1>", unsafe_allow_html=True)
-    with header_right:
-        st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("Lock Console"):
-            st.session_state['logged_in'] = False
-            st.session_state['dubbed_video_path'] = None
-            st.rerun()
-            
-    st.markdown("<hr style='border-color: #1f2937;'>", unsafe_allow_html=True)
+def run_ffmpeg(args: List[str]) -> None:
+    process = subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", *args], text=True, capture_output=True)
+    if process.returncode:
+        raise RuntimeError(process.stderr.strip() or "FFmpeg failed")
 
-    left_panel, right_panel = st.columns(2)
 
-    with left_panel:
-        st.markdown("### 🎬 1. Video Dubbing Settings")
-        uploaded_file = st.file_uploader("మీ ఒరిజినల్ 24-మించి లెంత్ వీడియో ఫైల్‌ను ఇక్కడ అప్‌లోడ్ చేయండి", type=["mp4", "mov", "avi"])
-        
-        target_lang = st.selectbox(
-            "2. Target Dubbing Pipeline Language",
-            ["English", "Hindi", "Spanish"]
+def transcribe_video(video_path: Path, source_language: Optional[str], model_size: str):
+    with tempfile.TemporaryDirectory() as directory:
+        audio_path = Path(directory) / "audio.wav"
+        run_ffmpeg(["-i", str(video_path), "-vn", "-ac", "1", "-ar", "16000", str(audio_path)])
+        model = load_whisper_model(model_size)
+        segments, info = model.transcribe(
+            str(audio_path),
+            language=source_language,
+            vad_filter=True,
+            beam_size=5,
+            condition_on_previous_text=True,
         )
-        
-        voice_map = {
-            "English": "en-US-BrianNeural",
-            "Hindi": "hi-IN-MadhurNeural",
-            "Spanish": "es-ES-AlvaroNeural"
-        }
-        
-        st.markdown("<br>", unsafe_allow_html=True)
-        execute_build = st.button("Start 100% Full-Auto Voice Dubbing", use_container_width=True)
-        
-        if execute_build:
-            if uploaded_file is not None:
-                timer_box = st.empty()
-                progress_bar = st.progress(0)
-                
-                try:
-                    with open("temp_input.mp4", "wb") as f:
-                        f.write(uploaded_file.read())
-                    
-                    # STAGE 1
-                    timer_box.markdown("⏱️ **Step 1: AI Listening to Video Speech (Telugu Recognition Active)...**")
-                    detected_telugu_text = extract_and_transcribe_telugu("temp_input.mp4")
-                    progress_bar.progress(25)
-                    time.sleep(1.0)
-                    
-                    # STAGE 2
-                    timer_box.markdown(f"⏱️ **Step 2: Translating Detected Script into {target_lang}...**")
-                    final_text = translate_text(detected_telugu_text, target_lang)
-                    progress_bar.progress(50)
-                    time.sleep(1.0)
-                    
-                    # STAGE 3
-                    timer_box.markdown(f"⏱️ **Step 3: Generating Microsoft AI Voiceover Track ({target_lang})...**")
-                    communicate = edge_tts.Communicate(final_text, voice_map[target_lang])
-                    asyncio.run(communicate.save("temp_dubbed.mp3"))
-                    progress_bar.progress(75)
-                    time.sleep(1.0)
-                    
-                    # STAGE 4
-                    timer_box.markdown("⏱️ **Step 4: Merging Track Lengths & Overwriting Audio Layers...**")
-                    success = merge_audio_video("temp_input.mp4", "temp_dubbed.mp3", "final_output.mp4")
-                    progress_bar.progress(100)
-                    time.sleep(1.0)
-                    
-                    if success and os.path.exists("final_output.mp4"):
-                        st.session_state['dubbed_video_path'] = "final_output.mp4"
-                    else:
-                        st.session_state['dubbed_video_path'] = "temp_input.mp4"
-                        
-                    st.session_state['selected_lang'] = target_lang
-                    timer_box.empty()
-                    progress_bar.empty()
-                    st.success(f"✅ {target_lang} dubbing completed!")
+        result = [{"start": float(s.start), "end": float(s.end), "text": s.text.strip()} for s in segments if s.text.strip()]
+        detected = source_language or info.language
+        return result, detected
 
-                    if os.path.exists(st.session_state['dubbed_video_path']):
-                        st.video(st.session_state['dubbed_video_path'])
 
-                        with open(st.session_state['dubbed_video_path'], "rb") as file:
-                            st.download_button(
-                                label="⬇ Download Dubbed Video",
-                                data=file,
-                                file_name="dubbed_video.mp4",
-                                mime="video/mp4"
-                            )
+def split_text(text: str, limit: int = 450) -> List[str]:
+    words = text.split()
+    chunks: List[str] = []
+    current = ""
+    for word in words:
+        if current and len(current) + len(word) + 1 > limit:
+            chunks.append(current)
+            current = word
+        else:
+            current = f"{current} {word}".strip()
+    if current:
+        chunks.append(current)
+    return chunks or [text]
 
-                except Exception as e:
-                    st.error(f"❌ Error: {str(e)}")
 
-                finally:
-                    timer_box.empty()
-                    progress_bar.empty()
+def translate_segments(segments: List[dict], target_code: str, source_code: Optional[str], progress: Optional[Callable[[int], None]] = None) -> List[dict]:
+    translated: List[dict] = []
+    translator = GoogleTranslator(source=source_code or "auto", target=target_code)
+    for index, segment in enumerate(segments):
+        text = segment["text"]
+        if source_code == target_code:
+            output = text
+        else:
+            # Translation services have request-size limits, so translate each segment in safe pieces.
+            output = " ".join(translator.translate(part) for part in split_text(text))
+        translated.append({**segment, "text": output})
+        if progress:
+            progress(int((index + 1) * 100 / max(1, len(segments))))
+    return translated
 
-            else:
-                st.warning("⚠️ Please upload a video file.")
+
+async def save_tts(text: str, voice: str, output: Path) -> None:
+    communicator = edge_tts.Communicate(text=text, voice=voice, rate="+0%", volume="+0%")
+    await communicator.save(str(output))
+
+
+def create_dubbed_track(segments: List[dict], voice: str, output: Path, progress: Optional[Callable[[int], None]] = None) -> None:
+    if not segments:
+        raise RuntimeError("No speech was detected in the video")
+    with tempfile.TemporaryDirectory() as directory:
+        work = Path(directory)
+        concat_entries: List[str] = []
+        for index, segment in enumerate(segments):
+            raw = work / f"speech_{index:05d}.mp3"
+            fitted = work / f"fitted_{index:05d}.wav"
+            asyncio.run(save_tts(segment["text"], voice, raw))
+            duration = max(0.25, segment["end"] - segment["start"])
+            # atempo supports 0.5..2.0 per filter. Chaining handles larger adjustments.
+            ratio = max(0.5, min(2.0, duration / max(0.05, get_media_duration(raw))))
+            filters = []
+            while ratio < 0.5:
+                filters.append("atempo=0.5")
+                ratio /= 0.5
+            while ratio > 2.0:
+                filters.append("atempo=2.0")
+                ratio /= 2.0
+            filters.append(f"atempo={ratio:.6f}")
+            run_ffmpeg(["-i", str(raw), "-af", ",".join(filters), "-ar", "48000", "-ac", "1", str(fitted)])
+            delay_ms = max(0, int(segment["start"] * 1000))
+            delayed = work / f"delayed_{index:05d}.wav"
+            run_ffmpeg(["-i", str(fitted), "-af", f"adelay={delay_ms}:all=1", "-ar", "48000", "-ac", "1", str(delayed)])
+            concat_entries.append(str(delayed))
+            if progress:
+                progress(int((index + 1) * 100 / len(segments)))
+
+        # Mix overlapping speech segments instead of dropping one of them.
+        inputs: List[str] = []
+        for item in concat_entries:
+            inputs.extend(["-i", item])
+        filter_graph = "".join(f"[{i}:a]" for i in range(len(concat_entries))) + f"amix=inputs={len(concat_entries)}:duration=longest:dropout_transition=0:normalize=0[a]"
+        run_ffmpeg([*inputs, "-filter_complex", filter_graph, "-map", "[a]", "-ar", "48000", "-ac", "2", str(output)])
+
+
+def get_media_duration(path: Path) -> float:
+    result = subprocess.run(
+        ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", str(path)],
+        check=True, text=True, capture_output=True,
+    )
+    return float(result.stdout.strip())
+
+
+def merge_audio_video(video_path: Path, audio_path: Path, output_path: Path) -> None:
+    run_ffmpeg(["-i", str(video_path), "-i", str(audio_path), "-map", "0:v:0", "-map", "1:a:0", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart", str(output_path)])
+
+
+def main() -> None:
+    st.set_page_config(page_title="World Dub Engine", page_icon="🎙️", layout="wide")
+    st.title("🎙️ World AI Video Dubbing")
+    st.caption("Transcribe → translate → generate a clear neural voice → replace the original audio")
+
+    with st.sidebar:
+        st.header("Dubbing settings")
+        source_name = st.selectbox("Original language", list(SOURCE_LANGUAGES))
+        target_name = st.selectbox("Dub into", list(LANGUAGES), index=0)
+        model_size = st.selectbox("Speech recognition model", ["tiny", "base", "small"], index=1, help="Use small for better accuracy if your server has enough RAM.")
+        st.info(f"Voice: {LANGUAGES[target_name]['voice']}")
+
+    upload = st.file_uploader("Upload a video", type=["mp4", "mov", "mkv", "webm", "avi"])
+    if not upload:
+        st.warning("Upload a video to begin.")
+        return
+
+    if st.button("🚀 Create dubbed video", type="primary", use_container_width=True):
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            input_path = folder / (Path(upload.name).stem + Path(upload.name).suffix)
+            output_path = folder / "dubbed_video.mp4"
+            audio_path = folder / "dubbed_audio.wav"
+            input_path.write_bytes(upload.getbuffer())
+            progress = st.progress(0)
+            status = st.empty()
+            try:
+                status.info("1/4 Listening to the original speech…")
+                segments, detected_code = transcribe_video(input_path, SOURCE_LANGUAGES[source_name], model_size)
+                if not segments:
+                    raise RuntimeError("No speech was detected. Try a clearer video or another source-language setting.")
+                progress.progress(25)
+
+                status.info(f"2/4 Translating speech to {target_name}…")
+                translated = translate_segments(segments, LANGUAGES[target_name]["code"], detected_code, lambda p: progress.progress(25 + p // 4))
+                progress.progress(50)
+
+                status.info("3/4 Generating the selected neural voice and syncing timing…")
+                create_dubbed_track(translated, LANGUAGES[target_name]["voice"], audio_path, lambda p: progress.progress(50 + p // 4))
+                progress.progress(75)
+
+                status.info("4/4 Replacing the original audio track…")
+                merge_audio_video(input_path, audio_path, output_path)
+                progress.progress(100)
+                status.success(f"Done — {target_name} dubbing is ready. Detected source: {detected_code}.")
+                st.video(str(output_path))
+                st.download_button("⬇️ Download dubbed video", output_path.read_bytes(), "dubbed_video.mp4", "video/mp4", use_container_width=True)
+            except Exception as error:
+                status.empty()
+                st.error(f"Dubbing failed: {error}")
+
+
+if __name__ == "__main__":
+    main()
